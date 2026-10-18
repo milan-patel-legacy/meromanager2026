@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mero Manager</title>
+<style>
+:root{--bg:#f5f7fa;--card:#fff;--tx:#14213d;--mut:#4a5568;--pri:#0b5fd7;--ok:#0a7a3d;--bad:#c0262d;--warn:#9a5b00;--bd:#cfd6e0;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1420;--card:#18212f;--tx:#f1f5fb;--mut:#b4c0d2;--pri:#6ea8ff;--ok:#4ade80;--bad:#ff8a8f;--warn:#ffc260;--bd:#33425a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1420;--card:#18212f;--tx:#f1f5fb;--mut:#b4c0d2;--pri:#6ea8ff;--ok:#4ade80;--bad:#ff8a8f;--warn:#ffc260;--bd:#33425a;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:18px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:96px}
+body.big{font-size:22px}
+main{max-width:720px;margin:0 auto;padding:12px}
+h1{font-size:1.3em;margin:0}h2{font-size:1.1em;margin:18px 0 8px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+button,input,select{font:inherit;color:inherit}
+button{min-height:52px;padding:8px 16px;border-radius:14px;border:2px solid var(--bd);background:var(--card);cursor:pointer;font-weight:600}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:4px solid var(--pri);outline-offset:2px}
+.pri{background:var(--pri);border-color:var(--pri);color:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pri{color:#06101f}}
+.ok{border-color:var(--ok);color:var(--ok)}.bad{border-color:var(--bad);color:var(--bad)}
+input,select{width:100%;min-height:52px;padding:8px 12px;border-radius:14px;border:2px solid var(--bd);background:var(--card)}
+.card{background:var(--card);border:2px solid var(--bd);border-radius:18px;padding:12px;margin:10px 0}
+.master{display:flex;gap:8px;align-items:stretch}.master input{flex:1}
+.mic{min-width:64px;font-size:1.4em}.mic.on{background:var(--bad);color:#fff;border-color:var(--bad)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:var(--card);border:2px solid var(--bd);border-radius:16px;padding:10px}.stat b{display:block;font-size:1.25em}
+.mut{color:var(--mut);font-size:.9em}.g{color:var(--ok)}.r{color:var(--bad)}.w{color:var(--warn)}
+.row{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid var(--bd)}.row:last-child{border:0}
+.acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.acts button{min-height:44px;padding:4px 12px}
+.tip{border-left:6px solid var(--pri);padding:8px 12px;margin:8px 0;background:var(--card);border-radius:10px}
+.tip.w{border-color:var(--warn)}.tip.r{border-color:var(--bad)}
+label{display:block;margin:8px 0 2px;font-weight:600}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:2px solid var(--bd);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{flex:1;border:0;border-radius:0;min-height:68px;font-size:.78em;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none}
+nav button .i{font-size:1.6em}nav button[aria-current=page]{color:var(--pri);box-shadow:inset 0 4px 0 var(--pri)}
+.sr{position:absolute;left:-9999px}
+.hide{display:none}
+</style></head>
+<body>
+<main>
+<div class="top"><h1>💰 Mero Manager</h1>
+<div style="display:flex;gap:6px"><select id="lang" aria-label="Voice language" style="width:auto"><option value="en-US">English</option><option value="ne-NP">नेपाली</option><option value="hi-IN">हिन्दी</option></select>
+<button data-a="big" aria-label="Make text bigger">A+</button><button data-a="say" aria-label="Read my summary aloud">🔊</button><button data-a="bk" aria-label="Download backup file">⬇</button><button data-a="rs" aria-label="Restore from backup file">⬆</button><button data-a="cl" aria-label="Password cloud sync">☁</button><button data-a="pf" aria-label="Auto-save to a file on this computer">📁</button><input id="rf" type="file" accept=".json,application/json" class="sr" tabindex="-1" aria-hidden="true"></div></div>
+<div class="master card"><input id="mi" placeholder="Type or speak: spent 500 on food" aria-label="Master input. Type or speak anything to save it." autocomplete="off"><button class="pri" data-a="go" aria-label="Save entry">Go</button><button class="mic" id="mic" data-a="mic" aria-label="Speak. Tap and talk.">🎤</button></div>
+<div id="live" class="sr" role="status" aria-live="assertive"></div><div id="st" class="mut" aria-hidden="true" style="min-height:1.4em;margin:-4px 0 6px"></div>
+<div id="pv"></div><div id="v"></div>
+<div id="sv" class="mut" style="text-align:center;margin-top:16px"></div>
+</main>
+<nav id="nav" aria-label="Main menu"></nav>
+<script>
+const $=s=>document.querySelector(s),K='meroManager1';
+let S={tx:[],loans:[],emis:[],tasks:[],banks:[]};
+try{const r=localStorage.getItem(K);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
+const save=local=>{if(!local)S._t=Date.now();let ok=1;try{localStorage.setItem(K,JSON.stringify(S))}catch(e){ok=0}const v=$('#sv');if(v)v.textContent=ok?'✔ Auto-saved on this device at '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'⚠ Could not save in this browser. Use the ⬇ backup button.';if(!local){cloudPush();fileWrite()}};
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+let view='home',form=null,pend=null,mv='',armed={},lang='en-US';
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+const iso=d=>{const z=new Date(d);z.setMinutes(z.getMinutes()-z.getTimezoneOffset());return z.toISOString().slice(0,10)};
+const today=()=>iso(new Date()),addD=n=>{const d=new Date();d.setDate(d.getDate()+n);return iso(d)};
+const rs=n=>'Rs '+Math.round(n).toLocaleString('en-IN'),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const cap=s=>s?s[0].toUpperCase()+s.slice(1):'',ym=d=>d.slice(0,7);
+const sum=a=>a.reduce((x,y)=>x+y,0);
+const left=l=>l.amt-sum((l.pays||[]).map(p=>p.amt));
+/* ---------- voice ---------- */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null;
+function speak(t,cb){let d=0;const f=()=>{if(!d){d=1;cb&&cb()}};try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang=lang;u.onend=f;u.onerror=f;speechSynthesis.speak(u);setTimeout(f,Math.max(4000,t.length*90))}catch(e){f()}}
+const ERR={'not-allowed':'Microphone is blocked. Allow the microphone in browser settings, or open this page in its own tab in Chrome.','service-not-allowed':'Voice is blocked here. Open this page in its own browser tab in Chrome.','no-speech':'I did not hear anything. Tap the mic and speak.','audio-capture':'No microphone found.','network':'Voice needs internet. Check your connection.','language-not-supported':'This language is not supported for voice. Choose English.'};
+function listen(cb){if(!SR){say('Voice typing is not supported in this browser. Please use Chrome, or type and tap Go.',1);return}
+ try{if(rec){rec.err=1;rec.abort()}}catch(e){}
+ let got=0;const r=rec=new SR();r.lang=lang;r.continuous=false;r.interimResults=false;r.maxAlternatives=1;
+ r.onstart=()=>{$('#mic').classList.add('on');say('Listening. Speak now.')};
+ r.onend=()=>{$('#mic').classList.remove('on');if(!got&&!r.err){r.err=1;say('I did not hear anything. Tap the mic and try again.',1)}};
+ r.onerror=e=>{r.err=1;$('#mic').classList.remove('on');say(ERR[e.error]||'Voice error: '+e.error,e.error!='not-allowed'&&e.error!='service-not-allowed')};
+ r.onresult=e=>{got=1;cb(e.results[0][0].transcript)};
+ try{r.start()}catch(e){say('Could not start the microphone. Tap it again.',1)}}
+function say(t,loud){$('#st').textContent=t;$('#live').textContent='';setTimeout(()=>$('#live').textContent=t,50);if(loud)speak(t)}
+/* ---------- parsing ---------- */
+function num(t){const m=t.replace(/,/g,'').match(/(\d+(?:\.\d+)?)\s*(k|thousand|hajar|lakh|lac)?\b/i);if(!m)return 0;let n=+m[1];const u=(m[2]||'').toLowerCase();
+ if(u=='k'||u=='thousand'||u=='hajar')n*=1e3;else if(u)n*=1e5;return n}
+function dateOf(t){if(/tomorrow|bholi/.test(t))return addD(1);const m=t.match(/in (\d+) days?/);return m?addD(+m[1]):today()}
+function person(t){const m=t.match(/(?:from|to|with)\s+([a-z]+)/i)||t.match(/([a-z]+)\s+(?:ko|bata)\b/i);return m?cap(m[1]):''}
+function parse(raw){const t=raw.toLowerCase().trim(),a=num(t),d=dateOf(t),p=person(t),dueSet=/tomorrow|bholi|in \d+ days?/.test(t)?d:'';let ty;
+ if(/\bemi\b/.test(t))ty='emi';
+ else if(/repaid|paid back|returned|got back|received back|farkaye|pharkaye/.test(t)&&p)ty='pay';
+ else if(/balance|\bbank\b/.test(t)&&a)ty='bank';
+ else if(/borrow|\bowe\b|liye|took (a )?loan|loan from/.test(t))ty='borrowed';
+ else if(/\blent\b|\blend\b|diye|gave|loan to/.test(t))ty='lent';
+ else if(/income|receive|earned|salary|got paid|aamdani|sold/.test(t))ty='income';
+ else if(/spent|paid|bought|\bbuy\b|expense|cost|kharcha|rent|bill|petrol|food/.test(t))ty='expense';
+ else if(!a||/remind|task|meeting|call|visit|submit|todo|plan/.test(t))ty='task';else ty='expense';
+ return{type:ty,d:build(ty,{t,raw,a,d,p,dueSet})}}
+function build(ty,x){const{t,raw,a,d,p,dueSet}=x;
+ if(ty=='income'||ty=='expense')return{amt:a,note:cap(raw.replace(/[\d,.]+\s*(k|thousand|lakh)?/gi,'').replace(/\b(spent|paid|received|earned|on|for|rs|npr)\b/gi,'').trim())||cap(ty),date:d};
+ if(ty=='borrowed'||ty=='lent')return{person:p||'Unknown',amt:a,due:dueSet,note:''};
+ if(ty=='pay')return{person:p,amt:a};
+ if(ty=='emi'){const n=t.match(/emi (?:for|of)\s+([a-z ]+)/),dy=t.match(/\bon (\d{1,2})\b/),l=t.match(/(\d+)\s*(?:months|emis)/);
+  return{name:n?cap(n[1].trim()):'EMI',amt:a,day:dy?+dy[1]:new Date(d).getDate(),left:l?+l[1]:12}}
+ if(ty=='bank'){const n=t.match(/([a-z]+)\s+bank/)||t.match(/\bin\s+([a-z]+)/);return{name:n?cap(n[1]):'Bank',bal:a}}
+ return{title:cap(raw.trim()),date:d}}
+const NAMES={income:'Income',expense:'Expense',borrowed:'Borrowed (I owe)',lent:'Lent (owed to me)',pay:'Loan payment',emi:'EMI',task:'Task',bank:'Bank balance'};
+function describe(p){const d=p.d,n=NAMES[p.type];
+ if(p.type=='income'||p.type=='expense')return`${n} ${rs(d.amt)} for ${d.note}`;
+ if(p.type=='borrowed')return`Borrowed ${rs(d.amt)} from ${d.person}`;
+ if(p.type=='lent')return`Lent ${rs(d.amt)} to ${d.person}`;
+ if(p.type=='pay')return`Payment ${rs(d.amt)} with ${d.person}`;
+ if(p.type=='emi')return`EMI ${d.name} ${rs(d.amt)} every month on day ${d.day}`;
+ if(p.type=='bank')return`${d.name} bank balance ${rs(d.bal)}`;
+ return`Task: ${d.title} on ${d.date}`}
+function commit(type,d){
+ if(type=='income'||type=='expense')S.tx.unshift({id:uid(),kind:type,amt:+d.amt||0,note:d.note,date:d.date||today()});
+ else if(type=='borrowed'||type=='lent')S.loans.unshift({id:uid(),dir:type,person:d.person,amt:+d.amt||0,due:d.due||'',note:d.note||'',date:today(),pays:[]});
+ else if(type=='pay'){const l=S.loans.find(l=>l.person.toLowerCase()==String(d.person).toLowerCase()&&left(l)>0);if(!l){say('No open loan found for '+d.person,1);return false}l.pays.push({amt:Math.min(+d.amt,left(l)),date:today()})}
+ else if(type=='emi')S.emis.unshift({id:uid(),name:d.name,amt:+d.amt||0,day:+d.day||1,left:+d.left||1,paidMonth:''});
+ else if(type=='task')S.tasks.unshift({id:uid(),title:d.title,date:d.date||today(),done:false});
+ else if(type=='bank'){const b=S.banks.find(b=>b.name.toLowerCase()==d.name.toLowerCase());b?b.bal=+d.bal:S.banks.push({id:uid(),name:d.name,bal:+d.bal||0})}
+ save();return true}
+/* ---------- handle master input ---------- */
+function handle(txt,v){txt=txt.trim();if(!txt)return;const t=txt.toLowerCase(),nv=t.match(/(?:open|go to|show)\s*(home|money|loan|task|bank)/);
+ if(nv){view={home:'home',money:'money',loan:'loans',task:'tasks',bank:'banks'}[nv[1]];form=null;render();say('Opened '+view,v);return}
+ if(/^(summary|read|status|help me|what.?s up)/.test(t)){speak(summary());return}
+ pend=parse(txt);mv='';render();const s=describe(pend);say('I understood: '+s);
+ if(v)speak(s+'. Say yes to save, or no to cancel.',()=>listen(a=>{/yes|yeah|ok|save|haan|hajur|ठीक|हाँ/i.test(a)?okPend(true):(pend=null,render(),say('Cancelled',1))}))}
+function okPend(v){if(!pend)return;if(commit(pend.type,pend.d)){const s='Saved. '+describe(pend);pend=null;mv='';render();say(s,v)}else{pend=null;render()}}
+/* ---------- computed ---------- */
+function emiNext(e){const n=new Date(),y=n.getFullYear(),m=n.getMonth(),paid=e.paidMonth==ym(today());const due=new Date(y,m+(paid?1:0),Math.min(e.day,28+(e.day>28?(new Date(y,m+1,0).getDate()-28):0)));
+ const t0=new Date(y,m,n.getDate());return{due:iso(due),days:Math.round((due-t0)/864e5)}}
+function stats(){const mo=ym(today()),tx=S.tx.filter(t=>ym(t.date)==mo),inc=sum(tx.filter(t=>t.kind=='income').map(t=>t.amt)),exp=sum(tx.filter(t=>t.kind=='expense').map(t=>t.amt));
+ const owe=sum(S.loans.filter(l=>l.dir=='borrowed').map(left)),get=sum(S.loans.filter(l=>l.dir=='lent').map(left)),bank=sum(S.banks.map(b=>b.bal));
+ const emis=S.emis.filter(e=>e.left>0),emiSoon=emis.filter(e=>emiNext(e).days<=5),done=S.tasks.filter(t=>t.done).length;
+ return{inc,exp,net:inc-exp,owe,get,bank,emis,emiSoon,emiAmt:sum(emiSoon.map(e=>e.amt)),done,pct:S.tasks.length?Math.round(done/S.tasks.length*100):0}}
+function tips(){const s=stats(),T=[],td=today(),open=S.tasks.filter(t=>!t.done),od=open.filter(t=>t.date<td),tt=open.filter(t=>t.date==td);
+ if(od.length)T.push(['r',`${od.length} task(s) are late. Do “${od[0].title}” first.`]);
+ if(tt.length)T.push(['',`${tt.length} task(s) for today. Next: ${tt[0].title}.`]);
+ s.emiSoon.forEach(e=>{const d=emiNext(e).days;T.push([d<0?'r':'w',`${e.name} EMI ${rs(e.amt)} is ${d<0?Math.abs(d)+' days late':d==0?'due today':'due in '+d+' days'}.`])});
+ if(s.emiAmt>s.bank&&s.emiSoon.length)T.push(['r','Your bank money is less than the EMI due soon. Add money or ask for time.']);
+ S.loans.filter(l=>left(l)>0&&l.due&&l.due<=addD(7)).forEach(l=>T.push([l.due<td?'r':'w',l.dir=='lent'?`Ask ${l.person} to return ${rs(left(l))} (due ${l.due}).`:`Pay ${l.person} ${rs(left(l))} by ${l.due}.`]));
+ if(s.exp>s.inc&&s.exp>0)T.push(['w','This month you spent more than you earned. Try to reduce spending.']);
+ else if(s.inc>0&&s.exp>s.inc*.8)T.push(['w','You have spent over 80% of this month’s income.']);
+ if(s.get>0&&s.owe>0&&s.get>=s.owe)T.push(['','People owe you more than you owe. Collect it to clear your own debts.']);
+ if(!S.tx.length&&!S.tasks.length)T.push(['','Welcome! Try saying: “spent 500 on food” or “remind me to call the bank tomorrow”.']);
+ if(!T.length)T.push(['','All good today. Keep recording every income and expense.']);return T}
+function summary(){const s=stats();return`Cash flow this month: income ${rs(s.inc)}, expense ${rs(s.exp)}. Bank total ${rs(s.bank)}. You owe ${rs(s.owe)}. People owe you ${rs(s.get)}. `+tips().map(t=>t[1]).join(' ')}
+/* ---------- forms ---------- */
+const F={income:[['amt','Amount','number'],['note','From where?','text']],expense:[['amt','Amount','number'],['note','What for?','text']],
+ borrowed:[['person','Borrowed from (name)','text'],['amt','Amount','number'],['due','Pay back by','date']],lent:[['person','Lent to (name)','text'],['amt','Amount','number'],['due','Ask back by','date']],
+ emi:[['name','EMI name','text'],['amt','Monthly amount','number'],['day','Pay on day of month (1-28)','number'],['left','Months left','number']],
+ task:[['title','What to do?','text'],['date','On which day?','date']],bank:[['name','Bank name','text'],['bal','Balance now','number']],pay:[['amt','Amount','number']]};
+const TITLE={income:'Add income',expense:'Add expense',borrowed:'I borrowed money',lent:'I lent money',emi:'Add EMI',task:'Add task',bank:'Add / update bank',pay:'Add a payment'};
+function formHtml(){if(!form)return'';const f=F[form.t];return`<div class="card" role="group" aria-label="${TITLE[form.t]}"><h2 style="margin-top:0">${TITLE[form.t]}</h2>`+f.map(([k,l,ty])=>`<label for="f_${k}">${l}</label><input id="f_${k}" type="${ty}" ${ty=='number'?'inputmode="decimal" min="0"':''} value="${ty=='date'&&k!='due'?today():''}">`).join('')+
+ `<div class="acts"><button class="pri" data-a="fsave">Save</button><button data-a="fcancel">Cancel</button></div></div>`}
+function fsave(){const f=F[form.t],d={};f.forEach(([k])=>d[k]=$('#f_'+k).value.trim());
+ if(form.t=='pay'){const l=S.loans.find(l=>l.id==form.id);l.pays.push({amt:Math.min(+d.amt||0,left(l)),date:today()});save()}
+ else{const main=f[0][0];if(!d[main]||(F[form.t].some(x=>x[0]=='amt')&&!(+d.amt>0))&&form.t!='task'){say('Please fill the name and a correct amount',1);return}
+  if(form.t=='task'&&!d.title){say('Please type the task',1);return}commit(form.t,d)}
+ form=null;render();say('Saved',1)}
+const btn=(a,l,c='',x='')=>`<button class="${c}" data-a="${a}" ${x}>${l}</button>`;
+const add=(t,l,c)=>btn('add',l,c||'','data-t="'+t+'"');
+function del(id,kind){return armed[id]?btn('del','Tap again to delete','bad','data-id="'+id+'" data-k="'+kind+'"'):btn('del','🗑 Delete','','data-id="'+id+'" data-k="'+kind+'"')}
+/* ---------- views ---------- */
+const V={
+home(){const s=stats(),td=today(),tt=S.tasks.filter(t=>!t.done&&t.date<=td).slice(0,5);
+ return`<h2>💡 Smart suggestions</h2>`+tips().map(([c,t])=>`<div class="tip ${c}">${esc(t)}</div>`).join('')+
+ `<h2>Cash flow this month</h2><div class="grid"><div class="stat">Income<b class="g">${rs(s.inc)}</b></div><div class="stat">Expense<b class="r">${rs(s.exp)}</b></div><div class="stat">Saved<b class="${s.net<0?'r':'g'}">${rs(s.net)}</b></div><div class="stat">Bank total<b>${rs(s.bank)}</b></div><div class="stat">I owe<b class="r">${rs(s.owe)}</b></div><div class="stat">Owed to me<b class="g">${rs(s.get)}</b></div></div>`+
+ `<h2>Progress</h2><div class="card">Tasks done: <b>${s.done} of ${S.tasks.length}</b> (${s.pct}%)<div style="height:14px;background:var(--bd);border-radius:8px;margin-top:6px"><div style="height:14px;width:${s.pct}%;background:var(--ok);border-radius:8px"></div></div></div>`+
+ `<h2>To do now</h2><div class="card">${tt.length?tt.map(t=>`<div class="row"><span>${esc(t.title)}</span><span class="mut">${t.date}</span></div>`).join(''):'<span class="mut">Nothing pending.</span>'}</div>`},
+money(){const s=stats();return`<h2>Income &amp; Expense</h2><div class="grid">${add('income','＋ Income','ok')}${add('expense','－ Expense','bad')}</div>${formHtml()}
+ <div class="card mut">This month: income <b class="g">${rs(s.inc)}</b> · expense <b class="r">${rs(s.exp)}</b></div><div class="card">`+
+ (S.tx.length?S.tx.slice(0,60).map(t=>`<div class="row"><div><b>${esc(t.note)}</b><div class="mut">${t.date}</div></div><div><b class="${t.kind=='income'?'g':'r'}">${t.kind=='income'?'+':'−'}${rs(t.amt)}</b>${del(t.id,'tx')}</div></div>`).join(''):'<span class="mut">No records yet.</span>')+'</div>'},
+loans(){const sec=(dir,h)=>{const L=S.loans.filter(l=>l.dir==dir);return`<h2>${h} <span class="mut">${rs(sum(L.map(left)))}</span></h2>`+(L.length?L.map(l=>`<div class="card"><div class="row" style="border:0"><div><b>${esc(l.person)}</b><div class="mut">${l.date}${l.due?' · due '+l.due:''}</div></div><div style="text-align:right">${rs(l.amt)}<br><b class="${left(l)>0?(dir=='lent'?'g':'r'):'mut'}">${left(l)>0?'Left '+rs(left(l)):'Settled ✔'}</b></div></div>`+
+  (l.pays.length?`<div class="mut">Payments: ${l.pays.map(p=>rs(p.amt)+' ('+p.date+')').join(', ')}</div>`:'')+`<div class="acts">${left(l)>0?btn('add','＋ Payment','ok','data-t="pay" data-id="'+l.id+'"'):''}${del(l.id,'loans')}</div></div>`).join(''):'<div class="card mut">None.</div>')};
+ return`<h2>Borrow &amp; Lend</h2><div class="grid">${add('borrowed','I borrowed')}${add('lent','I lent')}</div>${form&&form.t!='emi'?formHtml():''}`+sec('borrowed','🔴 I owe')+sec('lent','🟢 Owed to me')+
+ `<h2>EMI</h2>${add('emi','＋ Add EMI')}${form&&form.t=='emi'?formHtml():''}`+S.emis.map(e=>{const n=emiNext(e);return`<div class="card"><div class="row" style="border:0"><div><b>${esc(e.name)}</b><div class="mut">${e.left>0?'Next '+n.due+' ('+(n.days<0?-n.days+' days late':n.days==0?'today':'in '+n.days+' days')+') · '+e.left+' left':'Finished ✔'}</div></div><b>${rs(e.amt)}</b></div><div class="acts">${e.left>0?btn('emipay','✔ Mark paid','ok','data-id="'+e.id+'"'):''}${del(e.id,'emis')}</div></div>`}).join('')},
+tasks(){const L=[...S.tasks].sort((a,b)=>a.done-b.done||a.date.localeCompare(b.date));return`<h2>Tasks &amp; Plan</h2>${add('task','＋ Add task','pri')}${formHtml()}<div class="card">`+
+ (L.length?L.map(t=>`<div class="row"><div style="${t.done?'text-decoration:line-through;opacity:.6':''}"><b>${esc(t.title)}</b><div class="mut ${!t.done&&t.date<today()?'r':''}">${t.date}${!t.done&&t.date<today()?' · late':''}</div></div><div>${btn('tick',t.done?'↩ Undo':'✔ Done',t.done?'':'ok','data-id="'+t.id+'"')}${del(t.id,'tasks')}</div></div>`).join(''):'<span class="mut">No tasks. Say: remind me to pay rent tomorrow.</span>')+'</div>'},
+banks(){return`<h2>Bank balances <span class="mut">${rs(stats().bank)}</span></h2>${add('bank','＋ Add / update bank','pri')}${formHtml()}<div class="card">`+
+ (S.banks.length?S.banks.map(b=>`<div class="row"><b>${esc(b.name)}</b><div><b>${rs(b.bal)}</b>${del(b.id,'banks')}</div></div>`).join(''):'<span class="mut">No banks yet. Say: balance in Nabil bank 25000.</span>')+'</div>'}};
+const NAV=[['home','🏠','Home'],['money','💵','Money'],['loans','🤝','Loans'],['tasks','✅','Tasks'],['banks','🏦','Banks']];
+function render(){$('#v').innerHTML=V[view]();$('#mi').value=mv;
+ $('#nav').innerHTML=NAV.map(([k,i,l])=>`<button data-a="nav" data-v="${k}" ${k==view?'aria-current="page"':''} aria-label="${l}"><span class="i">${i}</span>${l}</button>`).join('');
+ $('#pv').innerHTML=pend?`<div class="card" style="border-color:var(--pri)" role="group" aria-label="Please confirm"><b>${NAMES[pend.type]}</b><div style="font-size:1.2em;margin:6px 0">${esc(describe(pend))}</div><label for="pt">Wrong type? Change:</label><select id="pt">${Object.keys(NAMES).map(k=>`<option value="${k}" ${k==pend.type?'selected':''}>${NAMES[k]}</option>`).join('')}</select><div class="acts"><button class="pri" data-a="yes">✔ Save</button><button data-a="no">✖ Cancel</button></div></div>`:'';if(cloudOpen)$('#pv').insertAdjacentHTML('afterbegin',cloudHtml())}
+/* ---------- private GitHub sync (encrypted with your password) ---------- */
+let cloudOpen=false,CC=null,pt=null,busy=0,again=0;
+try{CC=JSON.parse(localStorage.getItem('meroCloud')||'null')}catch(e){}
+const b64=u=>{let s='';new Uint8Array(u).forEach(c=>s+=String.fromCharCode(c));return btoa(s)},unb=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const EMPTY=()=>({tx:[],loans:[],emis:[],tasks:[],banks:[]}),VF='mero-vault.json';
+async function derive(pw,salt){const m=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+ const k=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:310000,hash:'SHA-256'},m,{name:'AES-GCM',length:256},true,['encrypt','decrypt']);
+ return b64(await crypto.subtle.exportKey('raw',k))}
+const ck=k=>crypto.subtle.importKey('raw',unb(k),'AES-GCM',false,['encrypt','decrypt']);
+async function enc(k,d){const iv=crypto.getRandomValues(new Uint8Array(12));return{iv:b64(iv),ct:b64(await crypto.subtle.encrypt({name:'AES-GCM',iv},await ck(k),new TextEncoder().encode(JSON.stringify(d))))}}
+async function dec(k,o){return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:unb(o.iv)},await ck(k),unb(o.ct))))}
+const gh=(m,body,c)=>fetch('https://api.github.com/repos/'+c.repo+'/contents/'+VF,{method:m,cache:'no-store',headers:{Authorization:'Bearer '+c.token,Accept:'application/vnd.github+json'},body:body?JSON.stringify(body):undefined});
+async function gget(c){const r=await gh('GET',0,c);if(r.status==404)return null;if(r.status==401||r.status==403)throw new Error('auth');if(!r.ok)throw new Error('db '+r.status);const j=await r.json();return{sha:j.sha,v:JSON.parse(atob(j.content.replace(/\s/g,'')))}}
+async function gput(c,vault,sha){const r=await gh('PUT',{message:'sync',content:btoa(JSON.stringify(vault)),...(sha?{sha}:{})},c);if(r.status==409||r.status==422)throw new Error('conflict');if(r.status==401||r.status==403)throw new Error('auth');if(!r.ok)throw new Error('db '+r.status)}
+function merge(a,b){const n=(a._t||0)>=(b._t||0)?[a,b]:[b,a],o=EMPTY(),del=new Set([...(a._del||[]),...(b._del||[])]);
+ for(const k in o){const m=new Map();[n[1][k]||[],n[0][k]||[]].forEach(L=>L.forEach(x=>m.set(x.id,x)));o[k]=[...m.values()].filter(x=>!del.has(x.id));if(k!='banks')o[k].sort((x,y)=>x.id<y.id?1:-1)}
+ o._del=[...del];o._t=Math.max(a._t||0,b._t||0);return o}
+function cloudPush(){if(!CC||!CC.key)return;clearTimeout(pt);pt=setTimeout(()=>cloudPull(),1500)}
+async function cloudPull(n=0){if(!CC||!CC.key)return;if(busy){again=1;return}busy=1;
+ try{const g=await gget(CC);let rem=null;if(g)rem=await dec(CC.key,g.v);
+  const m=rem?merge(S,rem):S,diff=!rem||JSON.stringify(m)!==JSON.stringify(rem),loc=JSON.stringify(m)!==JSON.stringify(S);
+  if(loc){S=m;save(true);render()}
+  if(diff){const e=await enc(CC.key,m);await gput(CC,{v:1,salt:CC.salt,t:m._t||0,...e},g&&g.sha)}
+  $('#sv').textContent='\u2601 Synced to GitHub at '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
+ catch(e){if(e.message=='conflict'&&n<3){busy=0;return cloudPull(n+1)}$('#sv').textContent=e.message=='auth'?'\u2601 GitHub token problem. Open \u2601 and reconnect.':e.name=='OperationError'?'\u2601 Wrong password for this vault.':'\u2601 Not synced (offline). It will retry on your next change.'}
+ busy=0;if(again){again=0;cloudPull()}}
+async function cloudConnect(mode){const repo=$('#crepo').value.trim().replace(/^https:\/\/github\.com\//,'').replace(/\/$/,''),token=$('#ctok').value.trim(),pw=$('#cpw').value;
+ if(!/^[\w.-]+\/[\w.-]+$/.test(repo)){say('Type the repository like yourname/mero-data',1);return}
+ if(!token||!pw){say('Fill in the token and the password',1);return}
+ if(mode=='new'&&pw.length<10){say('Use a password of at least 10 characters',1);return}
+ say('Please wait\u2026');const c={repo,token};
+ if(mode=='new'){try{const ri=await fetch('https://api.github.com/repos/'+repo,{cache:'no-store',headers:{Authorization:'Bearer '+token,Accept:'application/vnd.github+json'}});if(ri.ok){const j=await ri.json();if(!j.private){say('This repository is PUBLIC, so anyone could download your encrypted file. Make it Private in GitHub, then try again.',1);return}}}catch(e){}}
+ try{const g=await gget(c);
+  if(mode=='new'){if(g)throw new Error('exists');const sb=crypto.getRandomValues(new Uint8Array(16));c.salt=b64(sb);c.key=await derive(pw,sb);S._t=Date.now();save(true);await gput(c,{v:1,salt:c.salt,t:S._t,...await enc(c.key,S)})}
+  else{if(!g)throw new Error('none');c.salt=g.v.salt;c.key=await derive(pw,unb(c.salt));const d=await dec(c.key,g.v);S=merge(S,Object.assign(EMPTY(),d));save(true)}
+  CC=c;try{localStorage.setItem('meroCloud',JSON.stringify(CC))}catch(e){}
+  cloudOpen=false;render();say(mode=='new'?'Vault created. Your data now syncs to your private repository.':'Unlocked. Your data is restored.',1);cloudPull()
+ }catch(e){const m=e.message;say(m=='exists'?'A vault already exists there. Tap Unlock existing.':m=='none'?'No vault found in that repository. Check the name, or create a new vault.':m=='auth'?'GitHub refused the token. Check that it has Contents read and write for this repository.':m=='db 404'?'Repository not found, or the token has no access to it.':e.name=='OperationError'?'Wrong password.':'Could not reach GitHub. Check the repository name, token and internet.',1)}}
+function cloudHtml(){const on=CC&&CC.key;return`<div class="card" style="border-color:var(--pri)" role="group" aria-label="Private GitHub sync"><b>\u2601 Private GitHub sync</b>`+(on?`<p>Connected to <b>${esc(CC.repo)}</b>. Every change is encrypted and saved there.</p><div class="acts"><button data-a="csync">Sync now</button><button class="bad" data-a="cout">Disconnect this device</button><button data-a="cclose">Close</button></div>`:`<p class="mut">Data is encrypted with your password before it goes to your private repository. If you forget the password, the data cannot be recovered.</p><label for="crepo">Private data repository</label><input id="crepo" placeholder="yourname/mero-data" value="${esc(CC&&CC.repo||'')}"><label for="ctok">GitHub token (for this repository only)</label><input id="ctok" type="password" autocomplete="off"><label for="cpw">Vault password</label><input id="cpw" type="password" autocomplete="current-password"><div class="acts"><button class="pri" data-a="cnew">Create new vault</button><button data-a="cunl">Unlock existing</button><button data-a="cclose">Close</button></div><p class="mut">First device: Create. Other devices: Unlock. Unlock merges that device\u2019s data with the cloud copy.</p>`)+`</div>`}
+/* ---------- auto-save to a file (Chrome/Edge on a computer) ---------- */
+let FH=null;
+const idb=(m,v)=>new Promise((res,rej)=>{const q=indexedDB.open('mero',1);q.onupgradeneeded=()=>q.result.createObjectStore('h');q.onerror=()=>rej(q.error);q.onsuccess=()=>{const t=q.result.transaction('h',m=='get'?'readonly':'readwrite'),s=t.objectStore('h'),r=m=='get'?s.get('fh'):s.put(v,'fh');t.oncomplete=()=>res(r.result);t.onerror=()=>rej(t.error)}});
+async function fileWrite(){if(!FH)return;try{if(FH.queryPermission&&await FH.queryPermission({mode:'readwrite'})!='granted'){$('#sv').textContent='Tap 📁 to turn file auto-save back on';return}const w=await FH.createWritable();await w.write(JSON.stringify(S,null,1));await w.close()}catch(e){}}
+async function pickFile(){if(!window.showSaveFilePicker){say('File auto-save works only in Chrome or Edge on a computer. Your data is still auto-saved in this browser.',1);return}
+ try{if(FH&&FH.requestPermission&&await FH.requestPermission({mode:'readwrite'})=='granted'){await fileWrite();say('File auto-save is on.',1);return}
+  FH=await showSaveFilePicker({suggestedName:'mero-manager-data.json',types:[{description:'JSON',accept:{'application/json':['.json']}}]});
+  try{await idb('put',FH)}catch(e){}await fileWrite();say('File auto-save is on. Every change is written to that file.',1)}catch(e){}}
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const a=b.dataset.a,id=b.dataset.id;
+ if(a=='nav'){view=b.dataset.v;form=null;render();say('Opened '+view);scrollTo(0,0)}
+ else if(a=='go')handle($('#mi').value,false);
+ else if(a=='mic')listen(t=>handle(t,true));
+ else if(a=='yes')okPend(false);else if(a=='no'){pend=null;render();say('Cancelled')}
+ else if(a=='add'){form={t:b.dataset.t,id};render();const f=$('#v input');f&&f.focus()}
+ else if(a=='fsave')fsave();else if(a=='fcancel'){form=null;render()}
+ else if(a=='tick'){const t=S.tasks.find(t=>t.id==id);t.done=!t.done;save();render();say(t.done?'Task done':'Task reopened')}
+ else if(a=='emipay'){const m=S.emis.find(x=>x.id==id);m.paidMonth=ym(today());m.left--;S.tx.unshift({id:uid(),kind:'expense',amt:m.amt,note:'EMI '+m.name,date:today()});save();render();say('EMI marked paid',1)}
+ else if(a=='del'){const k=b.dataset.k;if(!armed[id]){armed[id]=1;render();say('Tap again to delete');setTimeout(()=>{delete armed[id];render()},3500)}else{delete armed[id];S[k]=S[k].filter(x=>x.id!=id);(S._del=S._del||[]).push(id);save();render();say('Deleted')}}
+ else if(a=='big'){document.body.classList.toggle('big')}
+ else if(a=='bk'){const u=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:'application/json'})),l=document.createElement('a');l.href=u;l.download='mero-manager-backup-'+today()+'.json';document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);say('Backup file downloaded',1)}
+ else if(a=='rs')$('#rf').click()
+ else if(a=='pf')pickFile()
+ else if(a=='cl'){cloudOpen=!cloudOpen;render()}
+ else if(a=='cclose'){cloudOpen=false;render()}
+ else if(a=='cnew')cloudConnect('new');else if(a=='cunl')cloudConnect('open');
+ else if(a=='csync'){cloudPull();say('Syncing',1)}
+ else if(a=='cout'){CC=null;try{localStorage.removeItem('meroCloud')}catch(x){}render();say('Disconnected')}
+ else if(a=='say')speak(summary())});
+document.addEventListener('change',e=>{
+ if(e.target.id=='rf'){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d||typeof d!='object')throw 0;['tx','loans','emis','tasks','banks'].forEach(k=>{if(!Array.isArray(d[k]))d[k]=[]});S=d;save();render();say('Backup restored',1)}catch(x){say('This file is not a valid backup',1)}};r.readAsText(f);e.target.value='';return}
+ if(e.target.id=='pt'){const t=e.target.value,old=pend;pend={type:t,d:build(t,{t:(old.d.note||old.d.title||old.d.person||'').toLowerCase(),raw:old.d.note||old.d.title||'',a:old.d.amt||old.d.bal||0,d:today(),p:old.d.person||'',dueSet:''})};render()}
+ if(e.target.id=='lang')lang=e.target.value});
+$('#mi').addEventListener('input',e=>mv=e.target.value);
+$('#mi').addEventListener('keydown',e=>{if(e.key=='Enter')handle($('#mi').value,false)});
+setInterval(()=>{if(!/INPUT|SELECT/.test(document.activeElement.tagName))render()},60000);
+render();cloudPull();addEventListener('focus',()=>cloudPull());
+$('#sv').textContent='✔ Auto-save is on (this device)';idb('get').then(h=>{if(h)FH=h}).catch(()=>{});
+</script></body></html>
